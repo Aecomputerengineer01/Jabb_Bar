@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 1. ฐานข้อมูล PostgreSQL 16
+  postgres:
+    image: postgres:16-alpine
+    container_name: jabb_bar_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: jabb_user
+      POSTGRES_PASSWORD: jabb_password
+      POSTGRES_DB: jabb_bar_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jabb_user -d jabb_bar_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jabb_network
+
+  # 2. Backend (Node.js + Express.js + Prisma ORM)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jabb_bar_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DATABASE_URL: "postgresql://jabb_user:jabb_password@postgres:5432/jabb_bar_db?schema=public"
+    ports:
+      - "5000:5000"
+    networks:
+      - jabb_network
+
+  # 3. Frontend (React 19 + Vite + Tailwind CSS + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jabb_bar_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - jabb_network
+
+networks:
+  jabb_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

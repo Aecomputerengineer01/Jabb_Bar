@@ -1,16 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Model for Beverage Stock Items (รายการสต็อกเครื่องดื่ม)
+// Model for Beverage Stock Items (รายการสต็อกเครื่องดื่ม ร้านจ๊าบบาร์)
 model DrinkItem {
   id             String   @id @default(cuid())
   no             Int      @unique // ลำดับที่
@@ -38,7 +35,6 @@ model DrinkItem {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  // ความสัมพันธ์กับประวัติกะ
   shiftRecords   ShiftRecord[]
 }
 
@@ -50,7 +46,7 @@ model DailyShift {
   totalSold       Int           @default(0) // ยอดขายรวม (E)
   totalOpenStock  Int           @default(0) // ยอดรวมเปิดร้าน (C)
   totalCloseStock Int           @default(0) // ยอดรวมคงเหลือปิดร้าน (D)
-  warningCount    Int           @default(0) // จำนวนจุดเตือน
+  warningCount    Int           @default(0) // จำนวนจุดเตือน (A+B != C)
   notes           String?       // บันทึกสรุปกะ
 
   records         ShiftRecord[]

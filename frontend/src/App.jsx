@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   loadStoredItems, 
@@ -10,57 +8,45 @@ import {
   saveCurrentShiftDate,
   formatThaiTime,
   formatThaiDate 
-} from '../utils/storage';
-import { calculateSummary, calculateRow, parseNum } from '../utils/stockCalculations';
-import { createInitialStockData } from '../data/initialDrinks';
+} from './utils/storage';
+import { calculateSummary, calculateRow, parseNum } from './utils/stockCalculations';
+import { createInitialStockData } from './data/initialDrinks';
+import { apiClient } from './api/client';
 
-import { Header } from '../components/Header';
-import { StatCards } from '../components/StatCards';
-import { FilterBar } from '../components/FilterBar';
-import { StockTable } from '../components/StockTable';
-import { MobileCardView } from '../components/MobileCardView';
-import { CloseShiftModal } from '../components/CloseShiftModal';
-import { HistoryModal } from '../components/HistoryModal';
-import { ExportShareModal } from '../components/ExportShareModal';
-import { AddItemModal } from '../components/AddItemModal';
+import { Header } from './components/Header';
+import { StatCards } from './components/StatCards';
+import { FilterBar } from './components/FilterBar';
+import { StockTable } from './components/StockTable';
+import { MobileCardView } from './components/MobileCardView';
+import { CloseShiftModal } from './components/CloseShiftModal';
+import { HistoryModal } from './components/HistoryModal';
+import { ExportShareModal } from './components/ExportShareModal';
+import { AddItemModal } from './components/AddItemModal';
 
-import { CheckCircle2, Dices } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sparkles, RefreshCw, Dices, Database } from 'lucide-react';
 
-export default function HomePage() {
+export function App() {
   // Main State
-  const [items, setItems] = useState(() => createInitialStockData());
-  const [shiftDate, setShiftDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [shiftHistory, setShiftHistory] = useState([]);
+  const [items, setItems] = useState(() => loadStoredItems());
+  const [shiftDate, setShiftDate] = useState(() => loadCurrentShiftDate());
+  const [shiftHistory, setShiftHistory] = useState(() => loadShiftHistory());
   const [lastSavedTime, setLastSavedTime] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
-  const [isClientLoaded, setIsClientLoaded] = useState(false);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
 
   // Filters & View Mode
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'sold' | 'warning' | 'unclosed'
-  const [viewMode, setViewMode] = useState('table');
+  const [viewMode, setViewMode] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth < 768 ? 'cards' : 'table';
+  });
 
   // Modals
   const [isCloseShiftOpen, setIsCloseShiftOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
-
-  // Hydrate from localStorage once on client
-  useEffect(() => {
-    const storedItems = loadStoredItems();
-    const storedDate = loadCurrentShiftDate();
-    const storedHistory = loadShiftHistory();
-    setItems(storedItems);
-    setShiftDate(storedDate);
-    setShiftHistory(storedHistory);
-    setLastSavedTime(formatThaiTime());
-    if (window.innerWidth < 768) {
-      setViewMode('cards');
-    }
-    setIsClientLoaded(true);
-  }, []);
 
   // Show toast notification
   const showToast = useCallback((msg, type = 'success') => {
@@ -70,24 +56,47 @@ export default function HomePage() {
     }, 3500);
   }, []);
 
-  // Auto-save to Local Storage whenever items change (only after client has hydrated)
+  // Try to connect to Express backend + Postgres on initial mount
   useEffect(() => {
-    if (!isClientLoaded) return;
+    async function initFromBackend() {
+      const response = await apiClient.getDrinks();
+      if (response && response.success && Array.isArray(response.data) && response.data.length > 0) {
+        setIsBackendConnected(true);
+        const mapped = response.data.map(d => ({
+          id: d.id,
+          no: d.no,
+          name: d.name,
+          category: d.category,
+          broughtForward: d.broughtForward ? d.broughtForward.toString() : '',
+          added: d.added ? d.added.toString() : '',
+          cFront: d.cFront ? d.cFront.toString() : '',
+          cBack: d.cBack ? d.cBack.toString() : '',
+          dFront: d.dFront ? d.dFront.toString() : '',
+          dBack: d.dBack ? d.dBack.toString() : '',
+          remark: d.remark || '',
+        }));
+        setItems(mapped);
+        showToast('🟢 เชื่อมต่อ Backend (Express + Postgres) สำเร็จ!');
+      }
+    }
+    initFromBackend();
+  }, [showToast]);
+
+  // Auto-save to Local Storage whenever items change
+  useEffect(() => {
     saveStoredItems(items);
     setLastSavedTime(formatThaiTime());
-  }, [items, isClientLoaded]);
+  }, [items]);
 
   // Save shift date changes
   useEffect(() => {
-    if (!isClientLoaded) return;
     saveCurrentShiftDate(shiftDate);
-  }, [shiftDate, isClientLoaded]);
+  }, [shiftDate]);
 
   // Save history changes
   useEffect(() => {
-    if (!isClientLoaded) return;
     saveShiftHistory(shiftHistory);
-  }, [shiftHistory, isClientLoaded]);
+  }, [shiftHistory]);
 
   // Real-time calculations across all items
   const summary = useMemo(() => {
@@ -107,46 +116,84 @@ export default function HomePage() {
         return item;
       })
     );
+
+    // Sync to Express backend if connected
+    apiClient.updateDrink(id, field, value);
   }, []);
 
   // Delete an item
-  const handleDeleteItem = useCallback((id, name) => {
+  const handleDeleteItem = useCallback(async (id, name) => {
     if (window.confirm(`ต้องการลบรายการ "${name}" ออกจากระบบสต็อกหรือไม่?`)) {
       setItems((prev) => {
         const filtered = prev.filter((i) => i.id !== id);
         return filtered.map((item, idx) => ({ ...item, no: idx + 1 }));
       });
+      await apiClient.deleteDrink(id);
       showToast(`ลบ "${name}" เรียบร้อยแล้ว`, 'info');
     }
   }, [showToast]);
 
   // Add new item
-  const handleAddItem = useCallback((newItemData) => {
-    setItems((prev) => {
-      const nextNo = prev.length + 1;
-      const newItem = {
-        id: `custom-item-${Date.now()}`,
-        no: nextNo,
-        name: newItemData.name,
-        category: newItemData.category,
-        broughtForward: newItemData.broughtForward || '',
-        added: '',
-        cFront: '',
-        cBack: '',
-        dFront: '',
-        dBack: '',
-        remark: '',
-      };
-      return [...prev, newItem];
-    });
+  const handleAddItem = useCallback(async (newItemData) => {
+    const nextNo = items.length + 1;
+    const newItem = {
+      id: `item-${Date.now()}`,
+      no: nextNo,
+      name: newItemData.name,
+      category: newItemData.category,
+      broughtForward: newItemData.broughtForward || '',
+      added: '',
+      cFront: '',
+      cBack: '',
+      dFront: '',
+      dBack: '',
+      remark: '',
+    };
+    setItems((prev) => [...prev, newItem]);
+
+    // Send to backend
+    const res = await apiClient.createDrink(newItemData);
+    if (res && res.data) {
+      setItems((prev) => prev.map(item => item.id === newItem.id ? { ...item, id: res.data.id } : item));
+    }
     showToast(`เพิ่มเครื่องดื่ม "${newItemData.name}" เรียบร้อยแล้ว`);
-  }, [showToast]);
+  }, [items.length, showToast]);
 
   // Reset to initial default items
   const handleResetData = useCallback(() => {
     const initial = createInitialStockData();
     setItems(initial);
     showToast('รีเซ็ตข้อมูลทั้งหมดกลับเป็นค่าเริ่มต้นแล้ว', 'info');
+  }, [showToast]);
+
+  // Seed / Sync Mockup Data from Postgres Prisma
+  const handleSyncPrismaMockup = useCallback(async () => {
+    const seedRes = await apiClient.seedDatabase();
+    if (seedRes && seedRes.success) {
+      const drinksRes = await apiClient.getDrinks();
+      if (drinksRes && drinksRes.data) {
+        const mapped = drinksRes.data.map(d => ({
+          id: d.id,
+          no: d.no,
+          name: d.name,
+          category: d.category,
+          broughtForward: d.broughtForward ? d.broughtForward.toString() : '',
+          added: d.added ? d.added.toString() : '',
+          cFront: d.cFront ? d.cFront.toString() : '',
+          cBack: d.cBack ? d.cBack.toString() : '',
+          dFront: d.dFront ? d.dFront.toString() : '',
+          dBack: d.dBack ? d.dBack.toString() : '',
+          remark: d.remark || '',
+        }));
+        setItems(mapped);
+        setIsBackendConnected(true);
+        showToast('⚡ ซิงค์ Mockup Data จาก PostgreSQL (41 รายการ) สำเร็จ!');
+        return;
+      }
+    }
+
+    // Fallback to local demo numbers
+    handleLoadDemoData();
   }, [showToast]);
 
   // Load realistic Demo Data for quick testing & demonstration
@@ -195,42 +242,10 @@ export default function HomePage() {
     showToast('โหลดข้อมูลจำลองเพื่อการทดสอบเรียบร้อยแล้ว!');
   }, [showToast]);
 
-  // Load Mockup Data from Prisma Database / Seed
-  const handleLoadFromPrisma = useCallback(async () => {
-    try {
-      const res = await fetch('/api/drinks/');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          const mapped = json.data.map((d) => ({
-            id: d.id,
-            no: d.no,
-            name: d.name,
-            category: d.category,
-            broughtForward: d.broughtForward ? d.broughtForward.toString() : '',
-            added: d.added ? d.added.toString() : '',
-            cFront: d.cFront ? d.cFront.toString() : '',
-            cBack: d.cBack ? d.cBack.toString() : '',
-            dFront: d.dFront ? d.dFront.toString() : '',
-            dBack: d.dBack ? d.dBack.toString() : '',
-            remark: d.remark || '',
-          }));
-          setItems(mapped);
-          showToast('⚡ โหลด Mockup Data จาก Prisma Database สำเร็จ! (41 รายการ)');
-          return;
-        }
-      }
-    } catch {
-      // In static export or offline mode, fall back to rich client mock
-    }
-    handleLoadDemoData();
-    showToast('⚡ โหลด Mockup Data (Prisma Seed Structure) สำเร็จ!');
-  }, [handleLoadDemoData, showToast]);
-
   // CORE FEATURE 3: Next Day Shift (ปุ่มปิดยอดประจำวัน)
   // Logic: นำตัวเลขจากช่อง (D) คงเหลือร้านปิด ไปใส่แทนที่ในช่อง (A) ยอดยกมา
   // ส่วนช่องอื่นๆ ให้ล้างค่า (Clear) เป็นค่าว่าง เพื่อเริ่มนับสต็อกของวันใหม่
-  const handleConfirmCloseShift = useCallback(({ saveToHistory = true } = {}) => {
+  const handleConfirmCloseShift = useCallback(async ({ saveToHistory = true } = {}) => {
     if (saveToHistory) {
       const historySnapshot = {
         id: `shift-${Date.now()}`,
@@ -256,6 +271,10 @@ export default function HomePage() {
       setShiftHistory((prev) => [historySnapshot, ...prev]);
     }
 
+    // Call Postgres Express backend transaction
+    await apiClient.closeShift({ shiftDate });
+
+    // Client transform: (A) = (D), clear (B), (C), (D)
     setItems((prevItems) =>
       prevItems.map((item) => {
         const rowCalc = calculateRow(item);
@@ -276,6 +295,7 @@ export default function HomePage() {
       })
     );
 
+    // Increment shift date
     try {
       const currentDate = new Date(shiftDate);
       currentDate.setDate(currentDate.getDate() + 1);
@@ -369,19 +389,21 @@ export default function HomePage() {
         {/* Quick Demo Data / Bar Helper Ribbon */}
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3 bg-bar-900/60 border border-bar-border/80 px-3.5 py-2 rounded-xl text-xs text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-slate-300 font-medium">Next.js App Router — โหมดค่ำคืน (Dark Bar Mode)</span>
-            <span className="hidden sm:inline text-slate-500">• พร้อมรองรับการสัมผัสบนมือถือและแท็บเล็ต</span>
+            <span className={`w-2 h-2 rounded-full ${isBackendConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+            <span className="text-slate-300 font-medium">
+              {isBackendConnected ? 'PostgreSQL + Express Connected' : 'React + Vite Dark Mode'}
+            </span>
+            <span className="hidden sm:inline text-slate-500">• รองรับมือถือและแท็บเล็ต</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={handleLoadFromPrisma}
+              onClick={handleSyncPrismaMockup}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition text-xs font-medium"
-              title="โหลดข้อมูล Mockup ทั้งหมด 41 รายการที่ Seed ไว้ใน Prisma Database"
+              title="ซิงค์ Mockup Data จาก PostgreSQL ผ่าน Prisma ORM"
             >
-              <span className="text-cyan-400">🗄️</span>
-              <span>โหลด Mockup จาก Prisma (41 รายการ)</span>
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <span>ซิงค์ Mockup จาก Postgres (41 รายการ)</span>
             </button>
             <button
               onClick={handleLoadDemoData}
@@ -437,7 +459,7 @@ export default function HomePage() {
       <footer className="border-t border-bar-border/80 bg-bar-900/40 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            ร้านจ๊าบบาร์ (JABB BAR) — ระบบนับสต็อกสินค้าเครื่องดื่ม Next.js Dark Mode
+            ร้านจ๊าบบาร์ (JABB BAR) — React + Vite + Tailwind (Docker: Postgres + Express)
           </div>
           <div className="text-[11px] text-slate-600 flex items-center gap-2">
             <span>สมการ: (C) = หน้า + หลัง | (D) = หน้า + หลัง | (E) = (C) - (D)</span>
@@ -479,3 +501,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+export default App;

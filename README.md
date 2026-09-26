@@ -1,120 +1,100 @@
-# 🍸 ร้านจ๊าบบาร์ (JABB BAR) — ระบบนับสต็อกสินค้าเครื่องดื่ม (Dark Mode)
+# 🍸 ร้านจ๊าบบาร์ (JABB BAR) — ระบบจัดการสต็อกเครื่องดื่ม Full-Stack Docker
 
-> **Web Application สำหรับระบบจัดการสต็อกเครื่องดื่ม ร้านจ๊าบบาร์**
-> ออกแบบด้วย UI สไตล์ Dark Mode รองรับการใช้งานผ่านมือถือ แท็บเล็ต และคอมพิวเตอร์อย่างสมบูรณ์แบบ เหมาะกับการใช้งานในบาร์ที่มีแสงน้อย
-
----
-
-## 🚀 ลิงก์เข้าใช้งานระบบ (Live Demo)
-👉 **เปิดใช้งานผ่าน GitHub Pages:** [https://aecomputerengineer01.github.io/Jabb_Bar/](https://aecomputerengineer01.github.io/Jabb_Bar/)
-📦 **GitHub Repository:** [https://github.com/Aecomputerengineer01/Jabb_Bar](https://github.com/Aecomputerengineer01/Jabb_Bar)
+> **ระบบจัดการสต็อกเครื่องดื่ม ร้านจ๊าบบาร์ (Dark Mode & Mobile-First)**
+> พัฒนาด้วยสถาปัตยกรรม Full-Stack แยก Frontend, Backend, Database และรันทุก Service ผ่าน **Docker Compose**
 
 ---
 
-## ✨ คุณสมบัติเด่นของระบบ (Key Features)
+## 🏛️ สถาปัตยกรรมระบบ (Architecture)
 
-### 1. ⚡ Auto-Calculation (คำนวณอัตโนมัติ Real-Time)
-- เมื่อพิมพ์ตัวเลขในช่องนับ **หน้าร้าน** หรือ **หลังร้าน** ระบบจะคำนวณผลลัพธ์ทันที:
-  - **(C) รวมร้านเปิด** = หน้าร้าน + หลังร้าน
-  - **(D) คงเหลือร้านปิด** = หน้าร้าน + หลังร้าน
-  - **(E) ขาย (Sold)** = $(C) - (D)$
-- ไฮไลท์ช่อง **(E) ขาย** ด้วยสีเขียวนีออนเรืองแสง (Neon Emerald) โดดเด่น มองเห็นยอดขายได้ชัดเจนที่สุดจากระยะไกล
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                       DOCKER COMPOSE                        │
+│                                                             │
+│   ┌─────────────────────┐       ┌───────────────────────┐   │
+│   │  Frontend (Client)  │ HTTP  │   Backend (Server)    │   │
+│   │   React 19 + Vite   │──────>│   Node.js + Express   │   │
+│   │   Tailwind CSS      │       │      Prisma ORM       │   │
+│   │    (Port: 5173/80)  │       │     (Port: 5000)      │   │
+│   └─────────────────────┘       └───────────┬───────────┘   │
+│                                             │ SQL           │
+│                                             ▼               │
+│                                 ┌───────────────────────┐   │
+│                                 │  PostgreSQL Database  │   │
+│                                 │     Postgres 16       │   │
+│                                 │    (Port: 5432)       │   │
+│                                 └───────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### 2. ⚠️ Data Validation (แจ้งเตือนยอดเปิดร้านไม่ตรง)
-- หากยอดนับจริง $(C) \neq (A) + (B)$ ระบบจะแสดงไอคอนแจ้งเตือน **⚠️ (Warning)** แถวยอด (C) ทันที
-- ชี้หรือแตะที่ไอคอนเพื่อดูรายละเอียดผลต่าง (เช่น ขาด 2 หรือ เกิน 1)
-- มีปุ่ม Filter "ยอดไม่ตรงเตือน" ที่แถบด้านบน เพื่อกรองดูเฉพาะแถวที่มีปัญหาได้ทันที
-
-### 3. 🌙 Dark Bar UI & Mobile/Tablet Responsive
-- โทนสี Obsidian Black (`#07090e`), Slate Navy (`#121723`) และนีออน Amber/Emerald
-- **Sticky Columns:** คอลัมน์ **# (ลำดับ)** และ **รายการเครื่องดื่ม** ตรึงอยู่กับที่เมื่อเลื่อนตารางแนวนอนบนหน้าจอมือถือ
-- **Dual View Mode:**
-  - **โหมดตาราง (Table View):** ครบถ้วน เหมาะสำหรับแท็บเล็ต iPad แคชเชียร์
-  - **โหมดการ์ดนับเร็วบนมือถือ (Mobile Cards View):** การ์ดแยกแต่ละขวด พร้อมปุ่ม `+` / `-` ขนาดใหญ่สำหรับถือมือถือนับขวดในบาร์
-
-### 4. 🌅 Next Day Shift (ปุ่มปิดยอดประจำวัน)
-- เมื่อกด **"ปิดยอดประจำวัน"**:
-  1. ระบบจะนำตัวเลขจากช่อง **(D) คงเหลือร้านปิด** ไปใส่แทนที่ในช่อง **(A) ยอดยกมา** ของวันใหม่
-  2. ล้างค่าช่อง (B), (C), (D) และหมายเหตุ เป็นค่าว่างเพื่อเริ่มนับรอบใหม่
-  3. เลื่อนวันที่กะทำงานไปวันถัดไปโดยอัตโนมัติ
-  4. บันทึกสำเนาประวัติกะ (Shift History) และจุดพลุฉลองยอดขาย 🎉
-
-### 5. 💾 Local Storage (บันทึกข้อมูลอัตโนมัติ 100%)
-- ข้อมูลการกรอกทั้งหมดจะถูกบันทึกลง Local Storage อัตโนมัติ ป้องกันข้อมูลสูญหายเมื่อรีเฟรชหน้าจอ
-
-### 6. 🛠️ ฟังก์ชันเสริมสำหรับร้านบาร์
-- 📲 **คัดลอกสรุปยอดส่ง LINE (LINE Report):** สรุปยอดขายแยกรายขวด พร้อมส่งเข้ากลุ่มไลน์ผู้จัดการร้าน/เจ้าของร้านได้ในคลิกเดียว
-- 📊 **ส่งออก Excel (CSV):** ไฟล์ UTF-8 BOM เปิดภาษาไทยใน Microsoft Excel ได้ถูกต้อง
-- ➕ **เพิ่ม/ลบรายการสินค้า (Add/Delete Item):** รองรับเหล้าหรือเครื่องดื่มตัวใหม่
+1. **Frontend:** React 19 + Vite + Tailwind CSS (ดีไซน์ Dark Mode, รองรับ Mobile/Tablet, ตารางตรึง Sticky Column)
+2. **Backend:** Node.js + Express.js API (CORS, RESTful endpoints, Prisma Client)
+3. **Database:** PostgreSQL 16 (จัดการผ่าน Prisma ORM, มี Transaction ป้องกันข้อมูลสูญหาย)
+4. **Containerization:** Docker & Docker Compose สำหรับรันทั้งโปรเจกต์ด้วยคำสั่งเดียว
 
 ---
 
-## 📦 รายการสินค้าตั้งต้น 41 รายการ (Initial Drinks List)
-- **วิสกี้ / บรั่นดี / เหล้าไทย:** แบล็ค, เรด, รีเจนซี่ แบน, รีเจนซี่ กลม, GRANDE, เมอริเดียน กลม, เมอริเดียน แบน, แสงโสม กลม, แสงโสม แบน, หงษ์ทอง กลม, Kimton, Mountain King, Silver แบน
-- **เบียร์ / คราฟต์เบียร์:** Schneider, สิงห์, สิงห์Resere, ลีโอ, Snowy, ไฮเนเกน 0%
-- **มิกเซอร์ / น้ำอัดลม:** สไปรท์, โค้ก, น้ำเปล่า, โซดา, Oishi, สิงห์เลมอนโซดา, PINKเลมอนโซดา, Fanta Graye, Root beer
-- **โซจู:** โซจูพีช, โชจูสตรอว์เบอรี่, โซจูเจลลี่, โซจูโยเกิร์ต, โซจูมีเฮ Red Sherbet, โซจูSoRA
-- **ไวน์ / ค็อกเทล:** ไวน์Charles Strong, ไวน์Laughing Bird, ไวน์RUMOURS DRY, ไวน์HAUT LAPON, ไวน์Moton Cadet, Honney Conti, Cocktallซัมเมอร์เบอร์รี่
+## 🚀 วิธีการรันทั้งโปรเจกต์ด้วย Docker (Quick Start)
 
----
-
-## 💻 Tech Stack
-- **Framework:** Next.js 15 (App Router) + React 19
-- **Styling:** Tailwind CSS 3.4
-- **Icons:** Lucide React
-- **Effects:** Canvas Confetti
-- **ORM & Database:** Prisma ORM 6.4 + SQLite (`prisma/dev.db`)
-- **Deployment:** GitHub Pages & Next.js Server
-
----
-
-## 🗄️ โครงสร้างฐานข้อมูลและการจัดการ Mockup Data ด้วย Prisma
-
-ระบบเชื่อมต่อกับ **Prisma ORM** โดยใช้ SQLite (`prisma/dev.db`) จัดการข้อมูลเครื่องดื่มและประวัติกะทำงาน
-
-### โครงสร้างโมเดลใน `prisma/schema.prisma`:
-- **`DrinkItem`**: เก็บข้อมูลเครื่องดื่ม 41 รายการ, สต็อกยกมา (A), สั่งเพิ่ม (B), หน้าร้าน-หลังร้าน (C, D)
-- **`DailyShift`**: บันทึกประวัติการปิดยอดประจำวัน (วันที่, ยอดขายรวม, สต็อกเปิด, สต็อกปิด)
-- **`ShiftRecord`**: สแนปช็อตบันทึกยอดขายรายขวดในแต่ละกะที่ปิดยอด
-
-### คำสั่ง Prisma ที่พร้อมใช้งาน:
-
+### 1. รันระบบทั้งหมดด้วยคำสั่งเดียว:
 ```bash
-# 1. ซิงค์ Prisma Schema ไปยังฐานข้อมูล SQLite
-npm run db:push
+docker compose up --build -d
+```
 
-# 2. Seed Mockup Data เครื่องดื่ม 41 รายการเข้าฐานข้อมูล
-npm run db:seed
+### 2. เข้าใช้งานระบบ:
+- 🌐 **Frontend (Web Application):** [http://localhost:5173](http://localhost:5173) หรือ [http://localhost](http://localhost)
+- 🔌 **Backend API:** [http://localhost:5000/api/drinks](http://localhost:5000/api/drinks)
+- 🐘 **PostgreSQL:** `localhost:5432` (User: `jabb_user`, DB: `jabb_bar_db`)
 
-# 3. เปิดดูและแก้ไขข้อมูลในฐานข้อมูลผ่าน GUI (Prisma Studio)
-npm run db:studio
+### 3. คำสั่ง Docker ที่เป็นประโยชน์:
+```bash
+# ดู Log การทำงานของทุก Container แบบเรียลไทม์
+docker compose logs -f
+
+# สั่ง Seed ข้อมูลเครื่องดื่ม Mockup 41 รายการใน Container Backend
+docker compose exec backend node prisma/seed.js
+
+# หยุดการทำงานของทุก Service
+docker compose down
 ```
 
 ---
 
-## 🔌 Next.js API Routes (Prisma Backend Handlers)
-
-- **`GET /api/drinks/`**: ดึงข้อมูลเครื่องดื่ม 41 รายการ พร้อมผลลัพธ์คำนวณอัตโนมัติ (C, D, E) และสถานะ Warning
-- **`POST /api/drinks/`**: เพิ่มเครื่องดื่มรายการใหม่เข้า Database
-- **`PUT /api/drinks/`**: ปรับปรุงตัวเลขสต็อกเครื่องดื่ม
-- **`POST /api/shift/close/`**: ปิดยอดประจำวันแบบ **Prisma Transaction** (บันทึกกะ, สแนปช็อต และยกยอด D ไป A)
-- **`POST /api/seed/`**: รัน Seed Mockup Data 41 รายการผ่าน HTTP API
+## 📦 ข้อมูล Mockup ตั้งต้น 41 รายการ (Seeded in PostgreSQL)
+1. **วิสกี้ / บรั่นดี / เหล้าไทย:** แบล็ค, เรด, รีเจนซี่ แบน, รีเจนซี่ กลม, GRANDE, เมอริเดียน กลม, เมอริเดียน แบน, แสงโสม กลม, แสงโสม แบน, หงษ์ทอง กลม, Kimton, Mountain King, Silver แบน
+2. **เบียร์ / คราฟต์เบียร์:** Schneider, สิงห์, สิงห์Resere, ลีโอ, Snowy, ไฮเนเกน 0%
+3. **มิกเซอร์ / น้ำอัดลม:** สไปรท์, โค้ก, น้ำเปล่า, โซดา, Oishi, สิงห์เลมอนโซดา, PINKเลมอนโซดา, Fanta Graye, Root beer
+4. **โซจู:** โซจูพีช, โชจูสตรอว์เบอรี่, โซจูเจลลี่, โซจูโยเกิร์ต, โซจูมีเฮ Red Sherbet, โซจูSoRA
+5. **ไวน์ / ค็อกเทล:** ไวน์Charles Strong, ไวน์Laughing Bird, ไวน์RUMOURS DRY, ไวน์HAUT LAPON, ไวน์Moton Cadet, Honney Conti, Cocktallซัมเมอร์เบอร์รี่
 
 ---
 
-## 🛠️ การติดตั้งและรันในเครื่อง (Local Setup)
+## ⚡ สมการคำนวณและฟีเจอร์หลัก (Core Features)
 
+1. **Auto-Calculation:**
+   - $(C) = หน้าร้าน + หลังร้าน$ (รวมร้านเปิด)
+   - $(D) = หน้าร้าน + หลังร้าน$ (คงเหลือร้านปิด)
+   - $(E) = (C) - (D)$ (ยอดขาย เรืองแสงสีเขียวนีออน)
+2. **Data Validation:** ไอคอนแจ้งเตือน ⚠️ กะพริบอัตโนมัติหาก $(C) \neq (A) + (B)$
+3. **Next Day Shift:** ปุ่มสีทอง "ปิดยอดประจำวัน" ดำเนินการผ่าน **PostgreSQL Transaction** โดยนำยอด (D) ยกไปเป็น (A) ของวันใหม่
+4. **Dual View Mode:** สลับระหว่าง **โหมดตาราง (Table View)** และ **โหมดการ์ดนับเร็วบนมือถือ (Mobile Cards)**
+5. **LINE Report & Excel Export:** คัดลอกสรุปส่งไลน์กลุ่มร้าน หรือส่งออกไฟล์ CSV สำหรับ Excel
+
+---
+
+## 💻 การรันสำหรับ Local Development (โดยไม่ใช้ Docker)
+
+### รัน Backend:
 ```bash
-# ติดตั้งแพ็กเกจ
+cd backend
 npm install
-
-# ซิงค์และ Seed ข้อมูลตัวอย่างลง Prisma
-npm run db:push
-npm run db:seed
-
-# รัน Development Server (Next.js)
+npx prisma generate
 npm run dev
+```
 
-# บิลด์สำหรับ Production Server
-npm run build
+### รัน Frontend:
+```bash
+cd frontend
+npm install
+npm run dev
 ```

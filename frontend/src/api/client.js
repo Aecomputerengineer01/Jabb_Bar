@@ -1,0 +1,97 @@
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+export const apiClient = {
+  // 1. ดึงรายการเครื่องดื่มทั้งหมดจาก Express + Postgres
+  async getDrinks() {
+    try {
+      const res = await fetch(`${API_BASE}/drinks`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('Backend not available, using offline mode:', err.message);
+      return null;
+    }
+  },
+
+  // 2. บันทึก/อัปเดตสต็อกขวดเดียว
+  async updateDrink(id, field, value) {
+    try {
+      const res = await fetch(`${API_BASE}/drinks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, value }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Update failed on backend:', err.message);
+      return null;
+    }
+  },
+
+  // 3. เพิ่มรายการเครื่องดื่มใหม่
+  async createDrink(drinkData) {
+    try {
+      const res = await fetch(`${API_BASE}/drinks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(drinkData),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Create drink failed on backend:', err.message);
+      return null;
+    }
+  },
+
+  // 4. ลบรายการเครื่องดื่ม
+  async deleteDrink(id) {
+    try {
+      const res = await fetch(`${API_BASE}/drinks/${id}`, {
+        method: 'DELETE',
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Delete drink failed on backend:', err.message);
+      return null;
+    }
+  },
+
+  // 5. ปิดยอดประจำวัน (Next Day Shift)
+  async closeShift(payload) {
+    try {
+      const res = await fetch(`${API_BASE}/shift/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Close shift failed on backend:', err.message);
+      return null;
+    }
+  },
+
+  // 6. Seed Mockup Data 41 รายการ
+  async seedDatabase() {
+    try {
+      const res = await fetch(`${API_BASE}/seed`, {
+        method: 'POST',
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Seed database failed on backend:', err.message);
+      return null;
+    }
+  },
+
+  // 7. ดึงประวัติการปิดกะ
+  async getShiftHistory() {
+    try {
+      const res = await fetch(`${API_BASE}/shifts`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+};

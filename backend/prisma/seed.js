@@ -46,15 +46,15 @@ const MOCKUP_DRINKS = [
   { no: 41, name: 'Root beer', category: 'mixer', broughtForward: 12, added: 0, cFront: 6, cBack: 6, dFront: 2, dBack: 4, remark: '' },
 ];
 
-async function main() {
-  console.log('🔄 เริ่มต้นล้างข้อมูลเก่าและ Seed Mockup Data ร้านจ๊าบบาร์ ด้วย Prisma...');
+export async function seed() {
+  console.log('🔄 เริ่มต้นล้างข้อมูลเก่าและ Seed Mockup Data ลง PostgreSQL...');
 
   // Clear existing records
   await prisma.shiftRecord.deleteMany();
   await prisma.dailyShift.deleteMany();
   await prisma.drinkItem.deleteMany();
 
-  console.log(`📦 กำลังบันทึกรายการเครื่องดื่มทั้งหมด ${MOCKUP_DRINKS.length} รายการลง Database...`);
+  console.log(`📦 กำลังบันทึกรายการเครื่องดื่มทั้งหมด ${MOCKUP_DRINKS.length} รายการลง PostgreSQL...`);
 
   for (const item of MOCKUP_DRINKS) {
     await prisma.drinkItem.create({
@@ -62,33 +62,27 @@ async function main() {
     });
   }
 
-  // Calculate totals for sample shift
   const totalOpen = MOCKUP_DRINKS.reduce((acc, i) => acc + (i.cFront + i.cBack), 0);
   const totalClose = MOCKUP_DRINKS.reduce((acc, i) => acc + (i.dFront + i.dBack), 0);
   const totalSold = totalOpen - totalClose;
 
-  // Create an initial sample shift record
-  const sampleShift = await prisma.dailyShift.create({
+  await prisma.dailyShift.create({
     data: {
       shiftDate: new Date().toISOString().split('T')[0],
       totalSold,
       totalOpenStock: totalOpen,
       totalCloseStock: totalClose,
-      warningCount: 1, // item #4 has mismatch demo
-      notes: 'กะตัวอย่างเริ่มต้นระบบ จ๊าบบาร์ Dark Mode',
+      warningCount: 1,
+      notes: 'กะตัวอย่างเริ่มต้นระบบ จ๊าบบาร์ Dark Mode (PostgreSQL)',
     },
   });
 
-  console.log(`✅ Seed Mockup Data สำเร็จเรียบร้อย!`);
-  console.log(`   - จำนวนเครื่องดื่ม: ${MOCKUP_DRINKS.length} รายการ`);
-  console.log(`   - ตัวอย่างยอดขายรวม: ${totalSold} หน่วย`);
-  console.log(`   - ตัวอย่างสต็อกเปิดร้าน: ${totalOpen} หน่วย`);
-  console.log(`   - ตัวอย่างคงเหลือปิดร้าน: ${totalClose} หน่วย`);
+  console.log(`✅ Seed Mockup Data ใน PostgreSQL สำเร็จเรียบร้อย!`);
 }
 
-main()
+seed()
   .catch((e) => {
-    console.error('❌ เกิดข้อผิดพลาดในการ Seed:', e);
+    console.error('❌ เกิดข้อผิดพลาดในการ Seed PostgreSQL:', e);
     process.exit(1);
   })
   .finally(async () => {
