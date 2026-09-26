@@ -59,11 +59,11 @@
 ---
 
 ## 💻 Tech Stack
-- **Framework:** React 19 + Vite 6
+- **Framework:** Next.js 15 (App Router) + React 19
 - **Styling:** Tailwind CSS 3.4
 - **Icons:** Lucide React
 - **Effects:** Canvas Confetti
-- **Deployment:** GitHub Pages
+- **Deployment:** GitHub Pages (Static Export)
 
 ---
 
