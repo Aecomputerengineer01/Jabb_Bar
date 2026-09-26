@@ -63,7 +63,42 @@
 - **Styling:** Tailwind CSS 3.4
 - **Icons:** Lucide React
 - **Effects:** Canvas Confetti
-- **Deployment:** GitHub Pages (Static Export)
+- **ORM & Database:** Prisma ORM 6.4 + SQLite (`prisma/dev.db`)
+- **Deployment:** GitHub Pages & Next.js Server
+
+---
+
+## 🗄️ โครงสร้างฐานข้อมูลและการจัดการ Mockup Data ด้วย Prisma
+
+ระบบเชื่อมต่อกับ **Prisma ORM** โดยใช้ SQLite (`prisma/dev.db`) จัดการข้อมูลเครื่องดื่มและประวัติกะทำงาน
+
+### โครงสร้างโมเดลใน `prisma/schema.prisma`:
+- **`DrinkItem`**: เก็บข้อมูลเครื่องดื่ม 41 รายการ, สต็อกยกมา (A), สั่งเพิ่ม (B), หน้าร้าน-หลังร้าน (C, D)
+- **`DailyShift`**: บันทึกประวัติการปิดยอดประจำวัน (วันที่, ยอดขายรวม, สต็อกเปิด, สต็อกปิด)
+- **`ShiftRecord`**: สแนปช็อตบันทึกยอดขายรายขวดในแต่ละกะที่ปิดยอด
+
+### คำสั่ง Prisma ที่พร้อมใช้งาน:
+
+```bash
+# 1. ซิงค์ Prisma Schema ไปยังฐานข้อมูล SQLite
+npm run db:push
+
+# 2. Seed Mockup Data เครื่องดื่ม 41 รายการเข้าฐานข้อมูล
+npm run db:seed
+
+# 3. เปิดดูและแก้ไขข้อมูลในฐานข้อมูลผ่าน GUI (Prisma Studio)
+npm run db:studio
+```
+
+---
+
+## 🔌 Next.js API Routes (Prisma Backend Handlers)
+
+- **`GET /api/drinks/`**: ดึงข้อมูลเครื่องดื่ม 41 รายการ พร้อมผลลัพธ์คำนวณอัตโนมัติ (C, D, E) และสถานะ Warning
+- **`POST /api/drinks/`**: เพิ่มเครื่องดื่มรายการใหม่เข้า Database
+- **`PUT /api/drinks/`**: ปรับปรุงตัวเลขสต็อกเครื่องดื่ม
+- **`POST /api/shift/close/`**: ปิดยอดประจำวันแบบ **Prisma Transaction** (บันทึกกะ, สแนปช็อต และยกยอด D ไป A)
+- **`POST /api/seed/`**: รัน Seed Mockup Data 41 รายการผ่าน HTTP API
 
 ---
 
@@ -73,9 +108,13 @@
 # ติดตั้งแพ็กเกจ
 npm install
 
-# รัน Development Server
+# ซิงค์และ Seed ข้อมูลตัวอย่างลง Prisma
+npm run db:push
+npm run db:seed
+
+# รัน Development Server (Next.js)
 npm run dev
 
-# บิลด์สำหรับ Production
+# บิลด์สำหรับ Production Server
 npm run build
 ```

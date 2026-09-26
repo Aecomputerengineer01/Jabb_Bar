@@ -195,6 +195,38 @@ export default function HomePage() {
     showToast('โหลดข้อมูลจำลองเพื่อการทดสอบเรียบร้อยแล้ว!');
   }, [showToast]);
 
+  // Load Mockup Data from Prisma Database / Seed
+  const handleLoadFromPrisma = useCallback(async () => {
+    try {
+      const res = await fetch('/api/drinks/');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const mapped = json.data.map((d) => ({
+            id: d.id,
+            no: d.no,
+            name: d.name,
+            category: d.category,
+            broughtForward: d.broughtForward ? d.broughtForward.toString() : '',
+            added: d.added ? d.added.toString() : '',
+            cFront: d.cFront ? d.cFront.toString() : '',
+            cBack: d.cBack ? d.cBack.toString() : '',
+            dFront: d.dFront ? d.dFront.toString() : '',
+            dBack: d.dBack ? d.dBack.toString() : '',
+            remark: d.remark || '',
+          }));
+          setItems(mapped);
+          showToast('⚡ โหลด Mockup Data จาก Prisma Database สำเร็จ! (41 รายการ)');
+          return;
+        }
+      }
+    } catch {
+      // In static export or offline mode, fall back to rich client mock
+    }
+    handleLoadDemoData();
+    showToast('⚡ โหลด Mockup Data (Prisma Seed Structure) สำเร็จ!');
+  }, [handleLoadDemoData, showToast]);
+
   // CORE FEATURE 3: Next Day Shift (ปุ่มปิดยอดประจำวัน)
   // Logic: นำตัวเลขจากช่อง (D) คงเหลือร้านปิด ไปใส่แทนที่ในช่อง (A) ยอดยกมา
   // ส่วนช่องอื่นๆ ให้ล้างค่า (Clear) เป็นค่าว่าง เพื่อเริ่มนับสต็อกของวันใหม่
@@ -344,12 +376,20 @@ export default function HomePage() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleLoadFromPrisma}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition text-xs font-medium"
+              title="โหลดข้อมูล Mockup ทั้งหมด 41 รายการที่ Seed ไว้ใน Prisma Database"
+            >
+              <span className="text-cyan-400">🗄️</span>
+              <span>โหลด Mockup จาก Prisma (41 รายการ)</span>
+            </button>
+            <button
               onClick={handleLoadDemoData}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition text-xs font-medium"
               title="ใส่ตัวเลขตัวอย่างเพื่อทดสอบสูตรคำนวณและการแจ้งเตือน"
             >
               <Dices className="w-3.5 h-3.5 text-amber-400" />
-              <span>โหลดตัวเลขตัวอย่าง (Demo Data)</span>
+              <span>ตัวเลขตัวอย่าง</span>
             </button>
           </div>
         </div>

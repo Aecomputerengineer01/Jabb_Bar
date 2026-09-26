@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Model for Beverage Stock Items (รายการสต็อกเครื่องดื่ม)
+model DrinkItem {
+  id             String   @id @default(cuid())
+  no             Int      @unique // ลำดับที่
+  name           String   // ชื่อเครื่องดื่ม (เช่น แบล็ค, เรด, รีเจนซี่)
+  category       String   // หมวดหมู่ (whisky, brandy, thai_spirit, beer, soju, wine, mixer, other)
+  unit           String   @default("ขวด") // หน่วยนับ (ขวด, กระป๋อง, ลัง)
+  
+  // (A) ยอดยกมา (Brought Forward)
+  broughtForward Int      @default(0)
+
+  // (B) สั่งเพิ่ม (Added Stock)
+  added          Int      @default(0)
+
+  // (C) รวมร้านเปิด (Total Open)
+  cFront         Int      @default(0) // หน้าร้าน
+  cBack          Int      @default(0) // หลังร้าน
+
+  // (D) คงเหลือร้านปิด (Total Close)
+  dFront         Int      @default(0) // หน้าร้าน
+  dBack          Int      @default(0) // หลังร้าน
+
+  // หมายเหตุ
+  remark         String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // ความสัมพันธ์กับประวัติกะ
+  shiftRecords   ShiftRecord[]
+}
+
+// Model for Daily Shift (ประวัติการปิดยอดประจำวัน)
+model DailyShift {
+  id              String        @id @default(cuid())
+  shiftDate       String        // วันที่กะ (YYYY-MM-DD)
+  closedAt        DateTime      @default(now()) // เวลาที่กดปิดยอด
+  totalSold       Int           @default(0) // ยอดขายรวม (E)
+  totalOpenStock  Int           @default(0) // ยอดรวมเปิดร้าน (C)
+  totalCloseStock Int           @default(0) // ยอดรวมคงเหลือปิดร้าน (D)
+  warningCount    Int           @default(0) // จำนวนจุดเตือน
+  notes           String?       // บันทึกสรุปกะ
+
+  records         ShiftRecord[]
+}
+
+// Model for Drink Shift Record (Snapshot แต่ละขวดในกะที่ปิดยอด)
+model ShiftRecord {
+  id             String     @id @default(cuid())
+  shiftId        String
+  shift          DailyShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  
+  drinkId        String?
+  drink          DrinkItem? @relation(fields: [drinkId], references: [id], onDelete: SetNull)
+
+  drinkName      String
+  category       String
+  broughtForward Int
+  added          Int
+  cTotal         Int
+  dTotal         Int
+  sold           Int
+  remark         String?
+}
