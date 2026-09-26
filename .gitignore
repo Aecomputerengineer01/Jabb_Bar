@@ -34,3 +34,7 @@ prisma/*.db-journal
 *.njsproj
 *.sln
 *.sw?
+
+# Archive files
+*.zip
+
