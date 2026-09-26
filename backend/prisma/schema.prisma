@@ -65,8 +65,13 @@ model ShiftRecord {
   category       String
   broughtForward Int
   added          Int
+  cFront         Int        @default(0) // รวมเปิด - หน้าร้าน
+  cBack          Int        @default(0) // รวมเปิด - หลังร้าน
   cTotal         Int
+  dFront         Int        @default(0) // คงเหลือปิด - หน้าร้าน
+  dBack          Int        @default(0) // คงเหลือปิด - หลังร้าน
   dTotal         Int
   sold           Int
   remark         String?
 }
+

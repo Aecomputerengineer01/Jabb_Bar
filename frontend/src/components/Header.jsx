@@ -10,7 +10,9 @@ import {
   LayoutList, 
   LayoutGrid,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  FileSpreadsheet,
+  ArrowLeft
 } from 'lucide-react';
 import { formatThaiDate } from '../utils/storage';
 
@@ -21,18 +23,23 @@ export const Header = ({
   onOpenCloseShift,
   onOpenHistory,
   onOpenExport,
+  onOpenImport,
   onOpenAddItem,
   onResetData,
   viewMode,
   setViewMode,
   warningCount,
-  totalSold
+  totalSold,
+  isHistoryMode = false,
+  activeShiftDate,
+  onExitHistoryMode,
+  isSyncing = false
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   return (
     <header className="bg-bar-900/90 backdrop-blur-md border-b border-bar-border sticky top-0 z-30 shadow-lg">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3">
         {/* Top bar with Brand, Save status & Quick stats */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           
@@ -59,23 +66,32 @@ export const Header = ({
                   </span>
                 </h1>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-                <span>ระบบนับสต็อกสินค้าเครื่องดื่ม</span>
+              <p className="text-xs text-slate-400 flex items-center flex-wrap gap-1.5 mt-0.5">
+                <span>ระบบนับสต็อกเครื่องดื่ม</span>
                 <span className="text-slate-600">•</span>
                 <span className="text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   บันทึกอัตโนมัติ {lastSavedTime || 'เรียบร้อย'}
+                </span>
+                <span className="text-slate-600 hidden sm:inline">•</span>
+                <span className={`hidden sm:flex items-center gap-1 text-[11px] ${isSyncing ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
+                  {isSyncing ? 'กำลังซิงค์...' : '🟢 ออนไลน์ & ซิงค์อัตโนมัติ'}
                 </span>
               </p>
             </div>
           </div>
 
           {/* Date Picker & Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             
             {/* Shift Date Display / Input */}
-            <div className="flex items-center gap-2 bg-bar-850 px-3 py-1.5 rounded-lg border border-bar-border text-sm text-slate-200">
-              <Calendar className="w-4 h-4 text-amber-400" />
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm ${
+              isHistoryMode 
+                ? 'bg-amber-950/40 border-amber-500/60 text-amber-200 shadow-sm' 
+                : 'bg-bar-850 border-bar-border text-slate-200'
+            }`}>
+              <Calendar className={`w-4 h-4 ${isHistoryMode ? 'text-amber-400 animate-pulse' : 'text-amber-400'}`} />
               <input
                 type="date"
                 value={shiftDate}
@@ -117,11 +133,21 @@ export const Header = ({
               </button>
             </div>
 
+            {/* Import Excel Button */}
+            <button
+              onClick={onOpenImport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-medium transition active:scale-95 shadow-sm"
+              title="นำเข้าสต็อกและอัปเดตข้อมูลจากไฟล์ Excel (CSV)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">นำเข้า Excel</span>
+            </button>
+
             {/* Share / LINE Report Button */}
             <button
               onClick={onOpenExport}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bar-800 hover:bg-bar-750 text-slate-200 border border-bar-border text-xs sm:text-sm font-medium transition hover:border-slate-500 active:scale-95"
-              title="สรุปส่ง LINE / ส่งออกรายงาน"
+              title="สรุปส่ง LINE / ส่งออกรายงาน Excel"
             >
               <Share2 className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden md:inline">ส่งสรุป LINE</span>
@@ -131,7 +157,7 @@ export const Header = ({
             <button
               onClick={onOpenHistory}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bar-800 hover:bg-bar-750 text-slate-200 border border-bar-border text-xs sm:text-sm font-medium transition hover:border-slate-500 active:scale-95"
-              title="ดูประวัติการปิดยอดที่ผ่านมา"
+              title="ดูประวัติการปิดยอดที่ผ่านมาทั้งหมด"
             >
               <History className="w-3.5 h-3.5 text-cyan-400" />
               <span className="hidden lg:inline">ประวัติ</span>
@@ -196,6 +222,29 @@ export const Header = ({
 
         </div>
       </div>
+
+      {/* Historical Shift View Notification Ribbon */}
+      {isHistoryMode && (
+        <div className="bg-gradient-to-r from-amber-950/90 via-amber-900/80 to-amber-950/90 border-t border-amber-500/40 px-3 sm:px-6 py-2 shadow-inner">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-amber-200">
+              <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                📅 <strong>โหมดดูข้อมูลย้อนหลัง:</strong> กำลังแสดงข้อมูลการปิดยอดรอบวันที่{' '}
+                <span className="font-bold underline text-amber-300">{formatThaiDate(shiftDate)}</span> ({shiftDate})
+              </span>
+            </div>
+            <button
+              onClick={onExitHistoryMode}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs shadow transition active:scale-95"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>กลับสู่กะปัจจุบัน ({formatThaiDate(activeShiftDate)})</span>
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
+

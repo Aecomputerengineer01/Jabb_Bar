@@ -108,4 +108,68 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// POST /api/drinks/batch-import - นำเข้าข้อมูลหลายรายการจากไฟล์ Excel (CSV)
+router.post('/batch-import', async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Items array is required' });
+    }
+
+    const updatedDrinks = await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        if (!item.name) continue;
+
+        const dataPayload = {
+          category: item.category || 'other',
+          unit: item.unit || 'ขวด',
+          broughtForward: parseInt(item.broughtForward, 10) || 0,
+          added: parseInt(item.added, 10) || 0,
+          cFront: parseInt(item.cFront, 10) || 0,
+          cBack: parseInt(item.cBack, 10) || 0,
+          dFront: parseInt(item.dFront, 10) || 0,
+          dBack: parseInt(item.dBack, 10) || 0,
+          remark: item.remark || null,
+        };
+
+        const existing = await tx.drinkItem.findFirst({
+          where: {
+            OR: [
+              { name: item.name },
+              ...(item.no ? [{ no: parseInt(item.no, 10) }] : []),
+            ],
+          },
+        });
+
+        if (existing) {
+          await tx.drinkItem.update({
+            where: { id: existing.id },
+            data: dataPayload,
+          });
+        } else {
+          const count = await tx.drinkItem.count();
+          await tx.drinkItem.create({
+            data: {
+              no: parseInt(item.no, 10) || (count + 1),
+              name: item.name,
+              ...dataPayload,
+            },
+          });
+        }
+      }
+
+      return await tx.drinkItem.findMany({ orderBy: { no: 'asc' } });
+    });
+
+    res.json({
+      success: true,
+      message: `นำเข้าข้อมูลสำเร็จ ${items.length} รายการ`,
+      data: updatedDrinks,
+    });
+  } catch (err) {
+    console.error('Error batch importing drinks:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

@@ -84,13 +84,39 @@ export const apiClient = {
     }
   },
 
-  // 7. ดึงประวัติการปิดกะ
+  // 7. ดึงประวัติการปิดกะทั้งหมด
   async getShiftHistory() {
     try {
       const res = await fetch(`${API_BASE}/shifts`);
       if (!res.ok) return null;
       return await res.json();
     } catch {
+      return null;
+    }
+  },
+
+  // 8. ดึงประวัติกะตามวันที่ระบุ
+  async getShiftByDate(date) {
+    try {
+      const res = await fetch(`${API_BASE}/shifts/date/${date}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  // 9. นำเข้าข้อมูลจำนวนมากจากไฟล์ Excel (CSV)
+  async batchImportDrinks(items) {
+    try {
+      const res = await fetch(`${API_BASE}/drinks/batch-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('Batch import failed on backend:', err.message);
       return null;
     }
   },

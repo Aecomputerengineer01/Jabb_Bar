@@ -45,7 +45,11 @@ router.post('/close', async (req, res) => {
             category: drink.category,
             broughtForward: drink.broughtForward,
             added: drink.added,
+            cFront: drink.cFront,
+            cBack: drink.cBack,
             cTotal,
+            dFront: drink.dFront,
+            dBack: drink.dBack,
             dTotal,
             sold,
             remark: drink.remark,
@@ -81,7 +85,7 @@ router.post('/close', async (req, res) => {
   }
 });
 
-// GET /api/shifts - ดึงประวัติการปิดยอดที่ผ่านมา
+// GET /api/shifts - ดึงประวัติการปิดยอดที่ผ่านมาทั้งหมด
 router.get('/', async (req, res) => {
   try {
     const shifts = await prisma.dailyShift.findMany({
@@ -91,6 +95,25 @@ router.get('/', async (req, res) => {
     res.json({ success: true, data: shifts });
   } catch (err) {
     console.error('Error fetching shift history:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/shifts/date/:date - ดึงประวัติกะตามวันที่ระบุ
+router.get('/date/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const shift = await prisma.dailyShift.findFirst({
+      where: { shiftDate: date },
+      orderBy: { closedAt: 'desc' },
+      include: { records: true },
+    });
+    if (!shift) {
+      return res.status(404).json({ success: false, message: 'Shift not found for this date' });
+    }
+    res.json({ success: true, data: shift });
+  } catch (err) {
+    console.error('Error fetching shift by date:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
