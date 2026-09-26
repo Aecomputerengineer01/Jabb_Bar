@@ -6,7 +6,8 @@
 ---
 
 ## 🚀 ลิงก์เข้าใช้งานระบบ (Live Demo)
-👉 **เปิดใช้งานผ่าน GitHub Pages:** [https://aecomputerengineer01.github.io/Bar_Inventory/](https://aecomputerengineer01.github.io/Bar_Inventory/)
+👉 **เปิดใช้งานผ่าน GitHub Pages:** [https://aecomputerengineer01.github.io/Jabb_Bar/](https://aecomputerengineer01.github.io/Jabb_Bar/)
+📦 **GitHub Repository:** [https://github.com/Aecomputerengineer01/Jabb_Bar](https://github.com/Aecomputerengineer01/Jabb_Bar)
 
 ---
 
