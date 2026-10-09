@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   loadStoredItems, 
   saveStoredItems, 
@@ -36,6 +36,11 @@ export function App() {
   const [toastMessage, setToastMessage] = useState(null);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Synchronization loop prevention refs
+  const isRemoteSyncRef = useRef(false);
+  const isRemoteShiftDateRef = useRef(false);
+  const isRemoteHistoryRef = useRef(false);
 
   // Historical Shift Viewing Mode
   const [isHistoryMode, setIsHistoryMode] = useState(false);
@@ -158,25 +163,129 @@ export function App() {
     return () => clearInterval(intervalId);
   }, [isHistoryMode]);
 
-  // Auto-save to Local Storage whenever items change (Only for active shift, not historical view)
+  // Real-time Cross-Tab & Cross-Window Synchronization (BroadcastChannel & Storage Event)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let channel;
+    try {
+      channel = new BroadcastChannel('jabb_bar_realtime_sync');
+      channel.onmessage = (event) => {
+        if (isHistoryMode) return;
+        const { type, payload } = event.data || {};
+        if (type === 'SYNC_ITEMS' && Array.isArray(payload)) {
+          const activeEl = document.activeElement;
+          const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+          isRemoteSyncRef.current = true;
+          setItems((prevItems) => {
+            return payload.map((incoming) => {
+              const current = prevItems.find((p) => p.id === incoming.id);
+              if (!current) return incoming;
+              if (isTyping && activeEl.dataset?.itemId === current.id) {
+                return current;
+              }
+              return incoming;
+            });
+          });
+          setLastSavedTime(formatThaiTime());
+        } else if (type === 'SYNC_SHIFT_DATE' && payload) {
+          isRemoteShiftDateRef.current = true;
+          setShiftDate(payload);
+          setActiveShiftDate(payload);
+        } else if (type === 'SYNC_HISTORY' && Array.isArray(payload)) {
+          isRemoteHistoryRef.current = true;
+          setShiftHistory(payload);
+        }
+      };
+    } catch {
+      // BroadcastChannel fallback
+    }
+
+    const handleStorageEvent = (e) => {
+      if (isHistoryMode) return;
+      if (e.key === 'jabb_bar_stock_items_v2' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            isRemoteSyncRef.current = true;
+            setItems(parsed);
+            setLastSavedTime(formatThaiTime());
+          }
+        } catch {}
+      } else if (e.key === 'jabb_bar_current_shift_date_v2' && e.newValue) {
+        isRemoteShiftDateRef.current = true;
+        setShiftDate(e.newValue);
+        setActiveShiftDate(e.newValue);
+      } else if (e.key === 'jabb_bar_shift_history_v2' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            isRemoteHistoryRef.current = true;
+            setShiftHistory(parsed);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, [isHistoryMode]);
+
+  // Auto-save to Local Storage and broadcast to other tabs whenever items change
   useEffect(() => {
     if (!isHistoryMode) {
+      if (isRemoteSyncRef.current) {
+        isRemoteSyncRef.current = false;
+        return;
+      }
       saveStoredItems(items);
       setLastSavedTime(formatThaiTime());
+
+      // Broadcast changes to all open tabs in real-time (0ms latency)
+      try {
+        const channel = new BroadcastChannel('jabb_bar_realtime_sync');
+        channel.postMessage({ type: 'SYNC_ITEMS', payload: items });
+        channel.close();
+      } catch {}
     }
   }, [items, isHistoryMode]);
 
-  // Save shift date changes
+  // Save shift date changes and broadcast
   useEffect(() => {
     if (!isHistoryMode) {
+      if (isRemoteShiftDateRef.current) {
+        isRemoteShiftDateRef.current = false;
+        return;
+      }
       saveCurrentShiftDate(shiftDate);
       setActiveShiftDate(shiftDate);
+
+      try {
+        const channel = new BroadcastChannel('jabb_bar_realtime_sync');
+        channel.postMessage({ type: 'SYNC_SHIFT_DATE', payload: shiftDate });
+        channel.close();
+      } catch {}
     }
   }, [shiftDate, isHistoryMode]);
 
-  // Save history changes
+  // Save history changes and broadcast
   useEffect(() => {
+    if (isRemoteHistoryRef.current) {
+      isRemoteHistoryRef.current = false;
+      return;
+    }
     saveShiftHistory(shiftHistory);
+
+    try {
+      const channel = new BroadcastChannel('jabb_bar_realtime_sync');
+      channel.postMessage({ type: 'SYNC_HISTORY', payload: shiftHistory });
+      channel.close();
+    } catch {}
   }, [shiftHistory]);
 
   // Real-time calculations across all items
