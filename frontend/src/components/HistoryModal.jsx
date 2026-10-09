@@ -47,17 +47,21 @@ export const HistoryModal = ({
       'หมายเหตุ',
     ];
 
-    const rows = record.items.map((r, idx) => [
-      idx + 1,
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${r.category || ''}"`,
-      r.broughtForward || '0',
-      r.added || '0',
-      `"${(r.cFront || '0')}+${(r.cBack || '0')}"`,
-      `"${(r.dFront || '0')}+${(r.dBack || '0')}"`,
-      r.sold || 0,
-      `"${(r.remark || '').replace(/"/g, '""')}"`,
-    ]);
+    const rows = record.items.map((r, idx) => {
+      const cT = r.cTotal !== undefined ? r.cTotal : (parseInt(r.cFront || 0) + parseInt(r.cBack || 0));
+      const dT = r.dTotal !== undefined ? r.dTotal : (parseInt(r.dFront || 0) + parseInt(r.dBack || 0));
+      return [
+        idx + 1,
+        `"${r.name.replace(/"/g, '""')}"`,
+        `"${r.category || ''}"`,
+        r.broughtForward || '0',
+        r.added || '0',
+        `"${(r.cFront || '0')}+${(r.cBack || '0')} = ${cT}"`,
+        `"${(r.dFront || '0')}+${(r.dBack || '0')} = ${dT}"`,
+        r.sold || 0,
+        `"${(r.remark || '').replace(/"/g, '""')}"`,
+      ];
+    });
 
     const csvContent = '\uFEFF' + [
       headers.join(','),

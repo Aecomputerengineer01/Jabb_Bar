@@ -78,8 +78,8 @@ export const ExportShareModal = ({
       `"${r.category}"`,
       r.broughtForward || '0',
       r.added || '0',
-      `"${(r.cFront || '0')}+${(r.cBack || '0')}"`,
-      `"${(r.dFront || '0')}+${(r.dBack || '0')}"`,
+      `"${(r.cFront || '0')}+${(r.cBack || '0')} = ${r.cTotal}"`,
+      `"${(r.dFront || '0')}+${(r.dBack || '0')} = ${r.dTotal}"`,
       r.sold,
       `"${(r.remark || '').replace(/"/g, '""')}"`,
     ]);

@@ -261,8 +261,12 @@ export const ImportExcelModal = ({
                         <td className="p-2 font-medium">{row.name}</td>
                         <td className="p-2 text-center font-mono text-amber-300">{row.broughtForward}</td>
                         <td className="p-2 text-center font-mono text-cyan-300">{row.added}</td>
-                        <td className="p-2 text-center font-mono text-slate-300">{row.cFront} + {row.cBack}</td>
-                        <td className="p-2 text-center font-mono text-slate-300">{row.dFront} + {row.dBack}</td>
+                        <td className="p-2 text-center font-mono text-slate-300">
+                          {row.cFront} + {row.cBack} = {parseInt(row.cFront || 0) + parseInt(row.cBack || 0)}
+                        </td>
+                        <td className="p-2 text-center font-mono text-slate-300">
+                          {row.dFront} + {row.dBack} = {parseInt(row.dFront || 0) + parseInt(row.dBack || 0)}
+                        </td>
                         <td className="p-2 text-slate-400 truncate max-w-[120px]">{row.remark || '-'}</td>
                       </tr>
                     ))}
