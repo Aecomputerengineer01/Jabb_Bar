@@ -53,8 +53,14 @@ export const ImportExcelModal = ({
     const catIdx = findIndex(['หมวดหมู่', 'category']);
     const aIdx = findIndex(['(A)', 'ยกมา', 'broughtforward']);
     const bIdx = findIndex(['(B)', 'สั่งเพิ่ม', 'added']);
+    
+    // Check for combined (C) column or separate front/back
+    const cCombinedIdx = findIndex(['รวมร้านเปิด (หน้าร้าน+หลังร้าน)', 'รวมร้านเปิด (หน้า+หลัง)', '(c) รวมร้านเปิด', 'รวมร้านเปิด']);
     const cFrontIdx = findIndex(['(C) รวมร้านเปิด [หน้าร้าน]', 'cFront', 'เปิดหน้าร้าน', 'c_front']);
     const cBackIdx = findIndex(['(C) รวมร้านเปิด [หลังร้าน]', 'cBack', 'เปิดหลังร้าน', 'c_back']);
+
+    // Check for combined (D) column or separate front/back
+    const dCombinedIdx = findIndex(['คงเหลือร้านปิด (หน้าร้าน+หลังร้าน)', 'คงเหลือร้านปิด (หน้า+หลัง)', '(d) คงเหลือร้านปิด', 'คงเหลือร้านปิด']);
     const dFrontIdx = findIndex(['(D) คงเหลือร้านปิด [หน้าร้าน]', 'dFront', 'ปิดหน้าร้าน', 'd_front']);
     const dBackIdx = findIndex(['(D) คงเหลือร้านปิด [หลังร้าน]', 'dBack', 'ปิดหลังร้าน', 'd_back']);
     const remarkIdx = findIndex(['หมายเหตุ', 'remark']);
@@ -63,6 +69,18 @@ export const ImportExcelModal = ({
       throw new Error('ไม่พบคอลัมน์ "รายการเครื่องดื่ม" หรือ "Item Name" ในไฟล์');
     }
 
+    // Helper to parse "4+3", "4 + 3", or "7" into front and back values
+    const parseFrontBack = (val) => {
+      if (!val) return { front: '0', back: '0' };
+      const str = val.toString().trim();
+      const match = str.match(/(\d+)\s*\+\s*(\d+)/);
+      if (match) {
+        return { front: match[1], back: match[2] };
+      }
+      const num = parseInt(str, 10);
+      return { front: isNaN(num) ? '0' : num.toString(), back: '0' };
+    };
+
     const items = [];
     for (let i = 1; i < lines.length; i++) {
       const values = parseLine(lines[i]);
@@ -70,16 +88,38 @@ export const ImportExcelModal = ({
       const itemName = values[nameIdx];
       if (!itemName || itemName.includes('รวมทั้งสิ้น')) continue;
 
+      let cFrontVal = '0';
+      let cBackVal = '0';
+      if (cCombinedIdx !== -1 && values[cCombinedIdx] !== undefined && values[cCombinedIdx] !== '') {
+        const parsed = parseFrontBack(values[cCombinedIdx]);
+        cFrontVal = parsed.front;
+        cBackVal = parsed.back;
+      } else {
+        if (cFrontIdx !== -1 && values[cFrontIdx] !== '') cFrontVal = values[cFrontIdx];
+        if (cBackIdx !== -1 && values[cBackIdx] !== '') cBackVal = values[cBackIdx];
+      }
+
+      let dFrontVal = '0';
+      let dBackVal = '0';
+      if (dCombinedIdx !== -1 && values[dCombinedIdx] !== undefined && values[dCombinedIdx] !== '') {
+        const parsed = parseFrontBack(values[dCombinedIdx]);
+        dFrontVal = parsed.front;
+        dBackVal = parsed.back;
+      } else {
+        if (dFrontIdx !== -1 && values[dFrontIdx] !== '') dFrontVal = values[dFrontIdx];
+        if (dBackIdx !== -1 && values[dBackIdx] !== '') dBackVal = values[dBackIdx];
+      }
+
       items.push({
         no: noIdx !== -1 ? parseInt(values[noIdx], 10) || i : i,
         name: itemName,
         category: catIdx !== -1 && values[catIdx] ? values[catIdx] : 'whisky',
         broughtForward: aIdx !== -1 && values[aIdx] !== '' ? values[aIdx] : '0',
         added: bIdx !== -1 && values[bIdx] !== '' ? values[bIdx] : '0',
-        cFront: cFrontIdx !== -1 && values[cFrontIdx] !== '' ? values[cFrontIdx] : '0',
-        cBack: cBackIdx !== -1 && values[cBackIdx] !== '' ? values[cBackIdx] : '0',
-        dFront: dFrontIdx !== -1 && values[dFrontIdx] !== '' ? values[dFrontIdx] : '0',
-        dBack: dBackIdx !== -1 && values[dBackIdx] !== '' ? values[dBackIdx] : '0',
+        cFront: cFrontVal,
+        cBack: cBackVal,
+        dFront: dFrontVal,
+        dBack: dBackVal,
         remark: remarkIdx !== -1 ? values[remarkIdx] : '',
       });
     }

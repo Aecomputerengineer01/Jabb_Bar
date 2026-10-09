@@ -41,12 +41,8 @@ export const HistoryModal = ({
       'หมวดหมู่',
       '(A) ยอดยกมา',
       '(B) สั่งเพิ่ม',
-      '(C) รวมร้านเปิด [หน้าร้าน]',
-      '(C) รวมร้านเปิด [หลังร้าน]',
-      '(C) รวมร้านเปิด [รวม]',
-      '(D) คงเหลือร้านปิด [หน้าร้าน]',
-      '(D) คงเหลือร้านปิด [หลังร้าน]',
-      '(D) คงเหลือร้านปิด [รวม]',
+      '(C) รวมร้านเปิด (หน้าร้าน+หลังร้าน)',
+      '(D) คงเหลือร้านปิด (หน้าร้าน+หลังร้าน)',
       '(E) ขาย (Sold)',
       'หมายเหตุ',
     ];
@@ -57,12 +53,8 @@ export const HistoryModal = ({
       `"${r.category || ''}"`,
       r.broughtForward || '0',
       r.added || '0',
-      r.cFront || '0',
-      r.cBack || '0',
-      r.cTotal || (parseInt(r.cFront || 0) + parseInt(r.cBack || 0)),
-      r.dFront || '0',
-      r.dBack || '0',
-      r.dTotal || (parseInt(r.dFront || 0) + parseInt(r.dBack || 0)),
+      `"${(r.cFront || '0')}+${(r.cBack || '0')}"`,
+      `"${(r.dFront || '0')}+${(r.dBack || '0')}"`,
       r.sold || 0,
       `"${(r.remark || '').replace(/"/g, '""')}"`,
     ]);
@@ -71,7 +63,7 @@ export const HistoryModal = ({
       headers.join(','),
       ...rows.map(row => row.join(',')),
       '',
-      `"รวมทั้งสิ้น",,,,,,,${record.totalOpenStock || 0},,,${record.totalCloseStock || 0},${record.totalSold || 0},`
+      `"รวมทั้งสิ้น",,,,,${record.totalOpenStock || 0},${record.totalCloseStock || 0},${record.totalSold || 0},`
     ].join('\r\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

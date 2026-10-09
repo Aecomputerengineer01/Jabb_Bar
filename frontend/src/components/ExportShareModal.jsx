@@ -66,12 +66,8 @@ export const ExportShareModal = ({
       'หมวดหมู่',
       '(A) ยอดยกมา',
       '(B) สั่งเพิ่ม',
-      '(C) รวมร้านเปิด [หน้าร้าน]',
-      '(C) รวมร้านเปิด [หลังร้าน]',
-      '(C) รวมร้านเปิด [รวม]',
-      '(D) คงเหลือร้านปิด [หน้าร้าน]',
-      '(D) คงเหลือร้านปิด [หลังร้าน]',
-      '(D) คงเหลือร้านปิด [รวม]',
+      '(C) รวมร้านเปิด (หน้าร้าน+หลังร้าน)',
+      '(D) คงเหลือร้านปิด (หน้าร้าน+หลังร้าน)',
       '(E) ขาย (Sold)',
       'หมายเหตุ',
     ];
@@ -82,12 +78,8 @@ export const ExportShareModal = ({
       `"${r.category}"`,
       r.broughtForward || '0',
       r.added || '0',
-      r.cFront || '0',
-      r.cBack || '0',
-      r.cTotal,
-      r.dFront || '0',
-      r.dBack || '0',
-      r.dTotal,
+      `"${(r.cFront || '0')}+${(r.cBack || '0')}"`,
+      `"${(r.dFront || '0')}+${(r.dBack || '0')}"`,
       r.sold,
       `"${(r.remark || '').replace(/"/g, '""')}"`,
     ]);
@@ -96,7 +88,7 @@ export const ExportShareModal = ({
       headers.join(','),
       ...rows.map(row => row.join(',')),
       '',
-      `"รวมทั้งสิ้น",,,,,,,${summary.totalOpenStock},,,${summary.totalCloseStock},${summary.totalSold},`
+      `"รวมทั้งสิ้น",,,,,${summary.totalOpenStock},${summary.totalCloseStock},${summary.totalSold},`
     ].join('\r\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
